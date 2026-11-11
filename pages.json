@@ -1,0 +1,255 @@
+{
+  "pages": [
+    {
+      "path": "pages/customer/index/index",
+      "style": {
+        "navigationBarTitleText": "扫码点单",
+        "navigationBarBackgroundColor": "#087c61",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#f2f8f6"
+      }
+    },
+    {
+      "path": "pages/customer/menu/menu",
+      "style": {
+        "navigationBarTitleText": "点餐",
+        "navigationBarBackgroundColor": "#087c61",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/customer/combo/combo",
+      "style": {
+        "navigationBarTitleText": "1+1 随心配",
+        "navigationBarBackgroundColor": "#087c61",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/customer/confirm/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单",
+        "navigationBarBackgroundColor": "#087c61",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/customer/order/order",
+      "style": {
+        "navigationBarTitleText": "订单状态",
+        "navigationBarBackgroundColor": "#087c61",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/customer/member/member",
+      "style": {
+        "navigationBarTitleText": "会员中心",
+        "navigationBarBackgroundColor": "#14526c",
+        "navigationBarTextStyle": "white"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "pages/merchant/",
+      "pages": [
+        {
+          "path": "login/login",
+          "style": {
+            "navigationBarTitleText": "商家入口",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        },
+        {
+          "path": "orders/orders",
+          "style": {
+            "navigationBarTitleText": "订单管理",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        },
+        {
+          "path": "orderDetail/orderDetail",
+          "style": {
+            "navigationBarTitleText": "订单详情",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        },
+        {
+          "path": "feedback/feedback",
+          "style": {
+            "navigationBarTitleText": "顾客反馈",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        },
+        {
+          "path": "stats/stats",
+          "style": {
+            "navigationBarTitleText": "经营统计",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white",
+            "backgroundColor": "#f2f8f6"
+          }
+        },
+        {
+          "path": "coupons/coupons",
+          "style": {
+            "navigationBarTitleText": "优惠券管理",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        },
+        {
+          "path": "refundRequests/refundRequests",
+          "style": {
+            "navigationBarTitleText": "售后申请",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        },
+        {
+          "path": "menu/menu",
+          "style": {
+            "navigationBarTitleText": "菜单管理",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/stores/",
+      "pages": [
+        {
+          "path": "stores",
+          "style": {
+            "navigationBarTitleText": "选择门店",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white",
+            "backgroundColor": "#f2f8f6"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/address/",
+      "pages": [
+        {
+          "path": "address",
+          "style": {
+            "navigationBarTitleText": "收货地址",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/review/",
+      "pages": [
+        {
+          "path": "review",
+          "style": {
+            "navigationBarTitleText": "发表评价",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/bill/",
+      "pages": [
+        {
+          "path": "bill",
+          "style": {
+            "navigationBarTitleText": "资产流水",
+            "navigationBarBackgroundColor": "#14526c",
+            "navigationBarTextStyle": "white",
+            "enablePullDownRefresh": true
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/orders/",
+      "pages": [
+        {
+          "path": "orders",
+          "style": {
+            "navigationBarTitleText": "本桌订单",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white",
+            "enablePullDownRefresh": true
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/flash/",
+      "pages": [
+        {
+          "path": "flash",
+          "style": {
+            "navigationBarTitleText": "限时抢购",
+            "navigationBarBackgroundColor": "#176db3",
+            "navigationBarTextStyle": "white",
+            "enablePullDownRefresh": true
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/flashDetail/",
+      "pages": [
+        {
+          "path": "flashDetail",
+          "style": {
+            "navigationBarTitleText": "抢购详情",
+            "navigationBarBackgroundColor": "#176db3",
+            "navigationBarTextStyle": "white"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/favorites/",
+      "pages": [
+        {
+          "path": "favorites",
+          "style": {
+            "navigationBarTitleText": "我的收藏",
+            "navigationBarBackgroundColor": "#176db3",
+            "navigationBarTextStyle": "white",
+            "enablePullDownRefresh": true
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/customer/flashOrders/",
+      "pages": [
+        {
+          "path": "flashOrders",
+          "style": {
+            "navigationBarTitleText": "我的抢购订单",
+            "navigationBarBackgroundColor": "#176db3",
+            "navigationBarTextStyle": "white",
+            "enablePullDownRefresh": true
+          }
+        }
+      ]
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "扫码点单",
+    "navigationBarBackgroundColor": "#087c61",
+    "backgroundColor": "#f2f8f6",
+    "backgroundTextStyle": "light"
+  }
+}
