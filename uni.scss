@@ -1,0 +1,12 @@
+/* uni.scss —— 全局样式变量
+ *  uni-app 约定文件，会被自动注入到每个页面的 <style lang="scss">
+ *  注意：这里定义 scss 变量（$开头），App.vue 的 <style> 里定义的是 CSS 变量（--开头）
+ */
+$primary: #087c61;
+$primary-dark: #075c4a;
+$accent: #176db3;
+$accent-soft: #eaf4fb;
+$bg: #f2f8f6;
+$text: #183c34;
+$muted: #5c786f;
+$border: #dce9e4;
