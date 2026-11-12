@@ -40,12 +40,9 @@
   </view>
 
   <!-- 空状态：给出明确去向，别让用户停在白屏 -->
-  <view class="empty" v-else-if="!loading">
-    <view class="empty-icon">🧾</view>
-    <view class="empty-title">本桌还没有订单</view>
-    <view class="empty-sub">回到首页「开始点单」，第一笔订单会出现在这里</view>
+  <empty-state v-else-if="!loading" icon="🧾" title="本桌还没有订单" sub="回到首页「开始点单」，第一笔订单会出现在这里">
     <button class="empty-btn" @tap="goMenu">去点单</button>
-  </view>
+  </empty-state>
 
   <view class="loading" v-else>加载中...</view>
 </view>
@@ -267,24 +264,6 @@ export default {
   color: #087c61;
 }
 
-/* 空状态 */
-.empty {
-  text-align: center;
-  padding: 140rpx 60rpx;
-}
-.empty-icon { font-size: 96rpx; }
-.empty-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: var(--text);
-  margin-top: 24rpx;
-}
-.empty-sub {
-  font-size: 24rpx;
-  color: var(--muted);
-  margin-top: 12rpx;
-  line-height: 1.6;
-}
 .empty-btn {
   margin-top: 40rpx;
   background: var(--primary);

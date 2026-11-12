@@ -1,31 +1,20 @@
 <template>
   <view class="fav-page">
     <!-- 未登录：明确的权限态 + 去登录入口 -->
-    <view v-if="!logged" class="state-box">
-      <view class="state-icon">🔒</view>
-      <view class="state-text">登录后查看我的收藏</view>
-      <view class="state-tip">收藏会跟随会员账号，换设备也不会丢</view>
+    <empty-state v-if="!logged" icon="🔒" title="登录后查看我的收藏" tip="收藏会跟随会员账号，换设备也不会丢">
       <button class="primary-btn" @tap="goLogin">去登录</button>
       <button class="ghost-btn" @tap="goFlash">先逛抢购会场</button>
-    </view>
+    </empty-state>
 
-    <view v-else-if="loading" class="state-box">
-      <view class="state-icon">⏳</view>
-      <view class="state-text">正在加载收藏…</view>
-    </view>
+    <empty-state v-else-if="loading" icon="⏳" title="正在加载收藏…" />
 
-    <view v-else-if="error" class="state-box">
-      <view class="state-icon">⚠</view>
-      <view class="state-text">{{error}}</view>
+    <empty-state v-else-if="error" icon="⚠" :title="error">
       <button class="primary-btn" @tap="load">重新加载</button>
-    </view>
+    </empty-state>
 
-    <view v-else-if="list.length === 0" class="state-box">
-      <view class="state-icon">♡</view>
-      <view class="state-text">还没有收藏的商品</view>
-      <view class="state-tip">在限时抢购会场点 ♡ 即可收藏</view>
+    <empty-state v-else-if="list.length === 0" icon="♡" title="还没有收藏的商品" tip="在限时抢购会场点 ♡ 即可收藏">
       <button class="primary-btn" @tap="goFlash">去抢购会场</button>
-    </view>
+    </empty-state>
 
     <view v-else class="list">
       <view class="top-hint">共 {{list.length}} 件收藏 · 售罄商品会保留，方便下次蹲守</view>
@@ -156,10 +145,6 @@ export default {
 
 <style>
 .fav-page { min-height: 100vh; background: #f2f8f6; padding: 20rpx 24rpx 40rpx; }
-.state-box { padding: 150rpx 30rpx; text-align: center; color: #5c786f; }
-.state-icon { font-size: 68rpx; margin-bottom: 18rpx; }
-.state-text { font-size: 30rpx; color: #3e5e55; }
-.state-tip { font-size: 24rpx; color: #9bb2aa; margin-top: 12rpx; }
 .primary-btn {
   margin: 36rpx auto 0; width: 300rpx; height: 72rpx; line-height: 72rpx;
   font-size: 27rpx; color: #fff; background: #087c61; border-radius: 36rpx;

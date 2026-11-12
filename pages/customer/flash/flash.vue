@@ -39,20 +39,11 @@
     </view>
 
     <!-- ============ 加载 / 错误 / 空态 ============ -->
-    <view v-if="loading" class="state-box">
-      <view class="state-icon">⏳</view>
-      <view class="state-text">正在加载本场商品…</view>
-    </view>
-    <view v-else-if="error" class="state-box">
-      <view class="state-icon">⚠</view>
-      <view class="state-text">{{error}}</view>
+    <empty-state v-if="loading" icon="⏳" title="正在加载本场商品…" />
+    <empty-state v-else-if="error" icon="⚠" :title="error">
       <button class="retry-btn" @tap="load">重新加载</button>
-    </view>
-    <view v-else-if="items.length === 0" class="state-box">
-      <view class="state-icon">🛍</view>
-      <view class="state-text">本场暂无抢购商品</view>
-      <view class="state-tip">换个场次看看，或稍后再来</view>
-    </view>
+    </empty-state>
+    <empty-state v-else-if="items.length === 0" icon="🛍" title="本场暂无抢购商品" tip="换个场次看看，或稍后再来" />
 
     <!-- ============ 商品列表 ============ -->
     <view v-else class="list">
@@ -455,10 +446,6 @@ export default {
 .feedback.err { background: #fdecec; color: #c0392b; }
 .feedback.warn { background: #fff5e3; color: #a56a00; }
 
-.state-box { padding: 100rpx 30rpx; text-align: center; color: #5c786f; }
-.state-icon { font-size: 64rpx; margin-bottom: 18rpx; }
-.state-text { font-size: 28rpx; }
-.state-tip { font-size: 24rpx; margin-top: 10rpx; color: #9bb2aa; }
 .retry-btn {
   margin: 30rpx auto 0; width: 240rpx; height: 68rpx; line-height: 68rpx;
   font-size: 26rpx; color: #fff; background: #087c61; border-radius: 34rpx;

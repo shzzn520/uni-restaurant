@@ -1,22 +1,14 @@
 <template>
   <view class="orders-page">
-    <view v-if="!logged" class="state-box">
-      <view class="state-icon">🔒</view>
-      <view class="state-text">登录后查看我的抢购订单</view>
-      <view class="state-tip">订单与会员账号绑定，支付状态会实时同步</view>
+    <empty-state v-if="!logged" icon="🔒" title="登录后查看我的抢购订单" tip="订单与会员账号绑定，支付状态会实时同步">
       <button class="primary-btn" @tap="goLogin">去登录</button>
-    </view>
+    </empty-state>
 
-    <view v-else-if="loading" class="state-box">
-      <view class="state-icon">⏳</view>
-      <view class="state-text">正在同步订单状态…</view>
-    </view>
+    <empty-state v-else-if="loading" icon="⏳" title="正在同步订单状态…" />
 
-    <view v-else-if="error" class="state-box">
-      <view class="state-icon">⚠</view>
-      <view class="state-text">{{error}}</view>
+    <empty-state v-else-if="error" icon="⚠" :title="error">
       <button class="primary-btn" @tap="load">重新加载</button>
-    </view>
+    </empty-state>
 
     <view v-else>
       <!-- 状态筛选 -->
@@ -26,11 +18,10 @@
         </view>
       </view>
 
-      <view v-if="filtered.length === 0" class="state-box small">
-        <view class="state-icon">📋</view>
-        <view class="state-text">{{tab === 'all' ? '还没有抢购订单' : '该状态下暂无订单'}}</view>
+      <empty-state v-if="filtered.length === 0" compact icon="📋"
+                   :title="tab === 'all' ? '还没有抢购订单' : '该状态下暂无订单'">
         <button class="primary-btn" @tap="goFlash">去抢购会场</button>
-      </view>
+      </empty-state>
 
       <view v-else class="list">
         <view v-for="o in filtered" :key="o._id" class="card">
@@ -230,11 +221,6 @@ export default {
 
 <style>
 .orders-page { min-height: 100vh; background: #f2f8f6; padding: 0 24rpx 40rpx; }
-.state-box { padding: 150rpx 30rpx; text-align: center; color: #5c786f; }
-.state-box.small { padding: 90rpx 30rpx; }
-.state-icon { font-size: 68rpx; margin-bottom: 18rpx; }
-.state-text { font-size: 30rpx; color: #3e5e55; }
-.state-tip { font-size: 24rpx; color: #9bb2aa; margin-top: 12rpx; }
 .primary-btn {
   margin: 36rpx auto 0; width: 300rpx; height: 72rpx; line-height: 72rpx;
   font-size: 27rpx; color: #fff; background: #087c61; border-radius: 36rpx;
