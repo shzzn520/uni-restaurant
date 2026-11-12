@@ -15,38 +15,26 @@ const STORE_KEY = 'mock_db_v15'; // 本地缓存键（v15：麻辣小龙虾/黄�
 const SHOP_ID = 'demo-shop';    // 演示店铺 ID
 const session = require('./session.js');
 
-// 单笔最多用余额支付实付的 80%，防止叠出 0 元单。与后端 CouponService.BALANCE_PAY_RATIO 一致
-const BALANCE_PAY_RATIO = 0.8;
+const rules = require('./rules.js');
+// 金额与业务规则统一走 common/rules.js，避免 mock 与页面各写一套
+const {
+  BALANCE_PAY_RATIO, POINTS_PER_YUAN, POINTS_PAY_RATIO,
+  money, deliveryFeeOf, deliveryWaitMinutes
+} = rules;
 
-// ---- 会员等级权益（与后端 CouponService 的常量逐一对齐）----
-// 等级按累计消费分档：0=普通、200=银卡、500=金卡、1000=黑卡。
-// 之前 mock 里等级只是会员中心的一个字，折扣根本没落地；后端也没有。
-const LEVEL_SILVER = 200, LEVEL_GOLD = 500, LEVEL_BLACK = 1000;
-const RATE_SILVER = 0.95, RATE_GOLD = 0.9, RATE_BLACK = 0.85;
-// 积分抵现：100 分抵 1 元、按整元、单笔最多抵应付金额的 20%
-const POINTS_PER_YUAN = 100;
-const POINTS_PAY_RATIO = 0.2;
-
+/** 兼容旧调用：mock 内部传会员对象，规则层只认累计消费 */
 function levelOf(member) {
-  const s = (member && member.totalSpend) || 0;
-  if (s >= LEVEL_BLACK) return '黑卡';
-  if (s >= LEVEL_GOLD) return '金卡';
-  if (s >= LEVEL_SILVER) return '银卡';
-  return '普通会员';
+  return rules.levelOf(member && member.totalSpend);
 }
-
 function levelRate(level) {
-  if (level === '黑卡') return RATE_BLACK;
-  if (level === '金卡') return RATE_GOLD;
-  if (level === '银卡') return RATE_SILVER;
-  return 1;
+  return rules.levelRate(level);
 }
 
 function levelBenefit(level) {
   const r = levelRate(level);
   if (r >= 1) return '累计消费满 ¥200 升银卡，享 95 折';
   const zhe = Math.round(r * 10);
-  if (r === RATE_BLACK) return '最高等级，享 ' + zhe + ' 折';
+  if (r <= 0.85) return '最高等级，享 ' + zhe + ' 折';
   return '已享 ' + zhe + ' 折';
 }
 
@@ -310,31 +298,6 @@ function estimateWaitMinutes(items) {
   let count = 0;
   (items || []).forEach(it => { count += (Number(it && it.qty) || 0); });
   return Math.min(WAIT_MAX_MINUTES, WAIT_BASE_MINUTES + count);
-}
-
-// ===============================================================
-// 外卖配送费（与后端 OrderService 的 DELIVERY_FEE / FREE_DELIVERY_THRESHOLD
-// / deliveryFeeOf / deliveryWaitMinutes 逐字同源）
-//
-// 规则：外卖配送费 5 元，商品原价满 39 元免配送费；配送费不参与任何优惠
-//（券/等级折扣/余额/积分都不作用于它），直接加在优惠后应付之上。
-// 金额只由本地模拟层（此处）/ 后端算，前端不传配送费字段 —— 与
-// 「优惠金额一律服务端算」同一条铁律，否则改前端即可免运费。
-// ===============================================================
-const DELIVERY_FEE = 5;
-const FREE_DELIVERY_THRESHOLD = 39;
-const DELIVERY_EXTRA_MINUTES = 15;   // 外卖在制作时间上追加的骑手配送时间
-const DELIVERY_MAX_MINUTES = 60;
-
-/** 配送费计算：delivery 且原价未满免送门槛才收（与后端 deliveryFeeOf 同公式） */
-function deliveryFeeOf(deliveryType, goodsTotal) {
-  if (deliveryType !== 'delivery') return 0;
-  return goodsTotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-}
-
-/** 外卖单预计送达分钟 = 制作时间 + 配送时间，封顶 60（与后端同公式） */
-function deliveryWaitMinutes(cookMinutes) {
-  return Math.min(DELIVERY_MAX_MINUTES, cookMinutes + DELIVERY_EXTRA_MINUTES);
 }
 
 // 优惠券模板：与后端 DataSeeder.seedCoupons() 播种的 4 张券保持一致
@@ -1068,11 +1031,6 @@ function flashOrderView(o) {
 // 原则与后端一致：前端只传「用哪张券」，减免额一律由数据层算出来。
 // ===============================================================
 
-/** 金额统一保留两位小数，避免 0.1+0.2 这种浮点尾巴出现在页面上 */
-function money(n) {
-  return Math.round((Number(n) || 0) * 100) / 100;
-}
-
 // ===============================================================
 // 会员会话（与后端 MemberSessionService 同语义）
 //
@@ -1162,10 +1120,8 @@ function quoteCoupon(db, memberCouponId, userId, orderAmount, shopId) {
     out.reason = '还差 ¥' + money(mc.threshold - orderAmount) + ' 可用';
     return out;
   }
-  // 最多减到剩 1 元，不把订单打成 0
-  let discount = mc.amount;
-  const cap = Math.max(0, orderAmount - 1);
-  if (discount > cap) discount = cap;
+  // 最多减到剩 1 元，不把订单打成 0（规则见 common/rules.js）
+  const discount = rules.couponDiscount(orderAmount, mc.amount);
 
   out.usable = true;
   out.amount = money(discount);
@@ -1180,21 +1136,18 @@ function quoteBalance(db, memberId, useBalance, afterCoupon) {
   if (!useBalance || !memberId) return out;
 
   const m = db.members[memberId];
-  if (!m || !m.balance || m.balance <= 0) {
+  if (!m) {
     out.reason = '余额为 0';
     return out;
   }
-  const cap = money(afterCoupon * BALANCE_PAY_RATIO);
-  out.usable = true;
-  out.amount = money(Math.min(m.balance, cap));
+  // 上限与余额取小值，规则见 common/rules.js
+  const q = rules.quoteBalanceAmount(m.balance, afterCoupon);
+  out.usable = q.usable;
+  out.amount = q.amount;
+  out.reason = q.reason;
   out.balance = money(m.balance);
   out.memberId = memberId;
   return out;
-}
-
-/** 向下取整到分。等级折扣与积分抵扣都用它——宁可少减一分，也不能多减 */
-function floor2(n) {
-  return Math.floor((Number(n) || 0) * 100) / 100;
 }
 
 /**
@@ -1203,10 +1156,8 @@ function floor2(n) {
  */
 function quoteLevel(db, memberId, orderAmount) {
   const m = memberId ? db.members[memberId] : null;
-  const level = levelOf(m);
-  const rate = levelRate(level);
-  const amount = Math.max(0, floor2(orderAmount * (1 - rate)));
-  return { usable: !!m && amount > 0, level, rate, amount };
+  const q = rules.quoteLevel(m && m.totalSpend, orderAmount);
+  return { usable: !!m && q.amount > 0, level: q.level, rate: q.rate, amount: q.amount };
 }
 
 /**
@@ -1222,20 +1173,11 @@ function quotePoints(db, memberId, usePoints, orderAmount) {
     out.reason = usePoints && !m ? '会员不存在' : '未使用积分';
     return out;
   }
-  if (points < POINTS_PER_YUAN) {
-    out.reason = '积分不足 ' + POINTS_PER_YUAN + '，暂时不能抵扣';
-    return out;
-  }
-  const cap = Math.floor(orderAmount * POINTS_PAY_RATIO);           // 上限，取整元
-  const byPoints = Math.floor(points / POINTS_PER_YUAN);            // 持有积分能换几元
-  const use = Math.min(byPoints, cap);
-  if (use <= 0) {
-    out.reason = '本单金额较小，积分可抵金额不足 1 元';
-    return out;
-  }
-  out.usable = true;
-  out.amount = use;                    // 整元，不必再 money() 处理
-  out.pointsUsed = use * POINTS_PER_YUAN;
+  const q = rules.quotePoints(points, orderAmount);
+  out.usable = q.usable;
+  out.reason = q.reason;
+  out.amount = q.amount;
+  out.pointsUsed = q.pointsUsed;
   return out;
 }
 
