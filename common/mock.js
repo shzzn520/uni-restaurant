@@ -11,7 +11,7 @@
 // 演示数据也相应带上。旧库里这两列是 undefined，商家端导出的 CSV 与统计会缺列，
 // 因此必须换键让 load() 走一遍重建。
 // 升键时记得同步测试脚本里硬编码的 'mock_db_vN'（历史上漏改过一次，读到 undefined 直接抛异常）。
-const STORE_KEY = 'mock_db_v11'; // 本地缓存键（v11：限时抢购商品/订单/会员收藏三块数据）
+const STORE_KEY = 'mock_db_v14'; // 本地缓存键（v14：异国菜按原产国价核价调价 + 多人份菜补份量标注，seed 结构变更必须升版）
 const SHOP_ID = 'demo-shop';    // 演示店铺 ID
 const session = require('./session.js');
 
@@ -219,6 +219,41 @@ const IMAGES = {
   '葡式蛋挞':     'd20-egg-tarts.jpg',
   '黄金洋葱圈':   'd21-onion-rings.jpg',
   '香甜玉米杯':   'd22-corn-cup.jpg',
+  // —— 2026-11-12 新增 12 道国宴菜（AI 生成实拍风配图，144px 压缩，单张约 5KB）——
+  '开水白菜':     'd23-kai-shui-bai-cai.jpg',
+  '蟹粉狮子头':   'd24-crab-meat-lion-head.jpg',
+  '松鼠桂鱼':     'd25-squirrel-mandarin-fish.jpg',
+  '龙井虾仁':     'd26-longjing-shrimp.jpg',
+  '东坡肉':       'd27-dongpo-pork.jpg',
+  '干焖大虾':     'd28-braised-prawns.jpg',
+  '葱烧海参':     'd29-scallion-sea-cucumber.jpg',
+  '鸡汁煮干丝':   'd30-chicken-tofu-shreds.jpg',
+  '文思豆腐':     'd31-wensi-tofu-soup.jpg',
+  '北京烤鸭':     'd32-peking-duck.jpg',
+  '桂花糯米藕':   'd33-osmanthus-lotus-root.jpg',
+  '豌豆黄':       'd34-pea-cake.jpg',
+  // —— 2026-11-12 新增 21 道异国风味菜（AI 生成实拍风配图，144px 压缩，单张约 3.3KB）——
+  '关东煮':       'd35-oden.jpg',
+  '三文鱼寿司':   'd36-salmon-sushi.jpg',
+  '豚骨拉面':     'd37-tonkotsu-ramen.jpg',
+  '石锅拌饭':     'd38-bibimbap.jpg',
+  '韩式炸鸡':     'd39-korean-fried-chicken.jpg',
+  '部队锅':       'd40-budae-jjigae.jpg',
+  '冬阴功汤':     'd41-tom-yum-goong.jpg',
+  '泰式菠萝炒饭': 'd42-thai-pineapple-fried-rice.jpg',
+  '越南牛肉河粉': 'd43-vietnamese-beef-pho.jpg',
+  '海南鸡饭':     'd44-hainanese-chicken-rice.jpg',
+  '黄油咖喱鸡':   'd45-butter-chicken.jpg',
+  '玛格丽特披萨': 'd46-margherita-pizza.jpg',
+  '墨西哥牛肉塔可': 'd47-beef-tacos.jpg',
+  '德式香肠拼盘': 'd48-german-sausage-platter.jpg',
+  '西班牙海鲜饭': 'd49-spanish-paella.jpg',
+  '瑞士芝士火锅': 'd50-swiss-fondue.jpg',
+  '葡萄牙烤沙丁鱼': 'd51-portuguese-sardines.jpg',
+  '挪威烟熏三文鱼': 'd52-norwegian-salmon.jpg',
+  '美式BBQ肋排':  'd53-american-bbq-ribs.jpg',
+  '巴西烤肉拼盘': 'd54-brazilian-churrasco.jpg',
+  '哥伦比亚炖鸡': 'd55-colombian-ajiaco.jpg',
   // —— 1+1 随心配套餐素材 ——
   '双层吉士汉堡': 'asset_beef_cheese_burger.png',
   '麦香鸡':       'asset_spicy_chicken_burger.png',
@@ -603,14 +638,16 @@ function buildSeed() {
     logo: ''
   }, s));
 
-  // 分类模板：c4/c5 为套餐分区（复用分类，不额外建表）
+  // 分类模板：c4/c5 为套餐分区（复用分类，不额外建表），c6 为 2026-11-12 新增的「国宴」正餐线
   const catTpl = [
     { name: '热销', sort: 0 },
     { name: '主食', sort: 1 },
     { name: '饮品', sort: 2 },
     { name: '小吃', sort: 3 },
     { name: ZONE_RED, sort: 4 },
-    { name: ZONE_WHITE, sort: 5 }
+    { name: ZONE_WHITE, sort: 5 },
+    { name: '国宴', sort: 6 },
+    { name: '异国风味', sort: 7 }
   ];
   // [名称, 价格, 分类下标, 描述]
   const raw = [
@@ -641,7 +678,48 @@ function buildSeed() {
     ['香芋奶茶', 13, 2, '芋香绵密，Q弹珍珠'],
     ['葡式蛋挞', 8, 3, '酥皮蛋香，现烤出炉'],
     ['黄金洋葱圈', 12, 3, '外脆内软，蘸酱更香'],
-    ['香甜玉米杯', 7, 3, '清甜玉米粒，便携杯装']
+    ['香甜玉米杯', 7, 3, '清甜玉米粒，便携杯装'],
+    // ↓↓↓ 2026-11-12 新增 12 道「国宴」菜（c6）：参照开国第一宴与钓鱼台国宴菜单，
+    // 覆盖川/淮扬/苏/杭/鲁/京各帮口。与后端 DataSeeder.DISH_ROWS 的追加段**同序**，
+    // 保证 d23~d34 在两端指向同一道菜；仍然只追加在末尾，不动前 22 项下标。
+    ['开水白菜', 68, 6, '清汤澄澈，川菜国宴首菜'],
+    ['蟹粉狮子头', 78, 6, '淮扬经典，松软即化'],
+    ['松鼠桂鱼', 128, 6, '苏帮名菜，外酥里嫩'],
+    ['龙井虾仁', 98, 6, '杭帮名菜，茶香清鲜'],
+    ['东坡肉', 58, 6, '慢火细炖，酥而不散'],
+    ['干焖大虾', 88, 6, '开国第一宴热菜，鲜香浓郁'],
+    ['葱烧海参', 138, 6, '鲁菜经典，浓香软糯'],
+    ['鸡汁煮干丝', 48, 6, '淮扬细作，汤鲜味醇'],
+    ['文思豆腐', 42, 6, '刀工绝技，细如发丝'],
+    ['北京烤鸭', 158, 6, '皮脆肉嫩，国宴常客'],
+    ['桂花糯米藕', 32, 6, '江南甜品，桂花清香'],
+    ['豌豆黄', 26, 6, '宫廷小吃，细腻清甜'],
+    // ↓↓↓ 2026-11-12 新增 21 道「异国风味」菜（c7）：与后端 DataSeeder.DISH_ROWS 追加段**同序**，
+    // 保证 d35~d55 在两端指向同一道菜。描述统一冠「国家 · 」，前端 .dish-desc（24rpx 灰色小字）
+    // 天然把国家渲染成小字，无需加字段或改模板。仍然只追加在末尾，不动前面下标。
+    // 价格口径与后端 DataSeeder.DISH_ROWS 同源：按各菜原产国当地菜单价折人民币核定（2026-11）。
+    // 描述格式「国家 · 份量 · 口味」—— .dish-desc 是单行 ellipsis，份量必须排在口味之前才不会被截掉。
+    ['关东煮', 28, 7, '日本 · 昆布高汤慢炖萝卜鱼丸'],
+    ['三文鱼寿司', 58, 7, '日本 · 8贯 · 厚切三文鱼手捏醋饭'],
+    ['豚骨拉面', 42, 7, '日本 · 浓白汤底配溏心蛋叉烧'],
+    ['石锅拌饭', 38, 7, '韩国 · 滚烫石锅锅巴焦香'],
+    ['韩式炸鸡', 52, 7, '韩国 · 整只1kg · 甜辣脆皮炸鸡'],
+    ['部队锅', 68, 7, '韩国 · 2-3人份 · 午餐肉泡面锅'],
+    ['冬阴功汤', 45, 7, '泰国 · 酸辣虾汤配香茅南姜'],
+    ['泰式菠萝炒饭', 34, 7, '泰国 · 菠萝盅盛装腰果肉松'],
+    ['越南牛肉河粉', 38, 7, '越南 · 牛骨清汤配生牛肉片'],
+    ['海南鸡饭', 40, 7, '新加坡 · 鸡油饭配姜蓉'],
+    ['黄油咖喱鸡', 55, 7, '印度 · 番茄奶油咖喱配烤饼'],
+    ['玛格丽特披萨', 58, 7, '意大利 · 9寸 · 番茄罗勒水牛芝士'],
+    ['墨西哥牛肉塔可', 38, 7, '墨西哥 · 3个 · 玉米饼夹牛肉莎莎'],
+    ['德式香肠拼盘', 58, 7, '德国 · 酸菜土豆泥配烤肠'],
+    ['西班牙海鲜饭', 98, 7, '西班牙 · 2人份 · 藏红花烩饭配虾贝'],
+    ['瑞士芝士火锅', 88, 7, '瑞士 · 2-3人份 · 格鲁耶尔芝士蘸面包'],
+    ['葡萄牙烤沙丁鱼', 52, 7, '葡萄牙 · 炭烤沙丁鱼挤柠檬'],
+    ['挪威烟熏三文鱼', 68, 7, '挪威 · 冷熏三文鱼配莳萝'],
+    ['美式BBQ肋排', 98, 7, '美国 · 半架6根 · 慢烤猪肋排烟熏酱'],
+    ['巴西烤肉拼盘', 108, 7, '巴西 · 2人份 · 炭烤牛羊配木薯粉'],
+    ['哥伦比亚炖鸡', 48, 7, '哥伦比亚 · 土豆玉米浓汤炖鸡']
   ];
 
   // 三门店共用同一套菜单（连锁门店菜单一致，与后端 DataSeeder 给 3 门店各插 17 菜同源）：
@@ -745,6 +823,17 @@ function load() {
   if (!db.refundRequests) db.refundRequests = [];
   // 兼容旧数据：限时抢购是 v11 新增（老缓存里没有这三块集合）
   if (!db.flashItems || db.flashItems.length === 0) db.flashItems = buildSeed().flashItems;
+  // 幂等校准场次归属（与后端 FlashSaleService.run 同源，2026-11-11）：
+  // 旧种子里 fi4/fi5/fi6 只挂未来场，永远抢不到；这里按 fi0..fi7 的 id 校准
+  // sessionIds，不碰 stock/sold/status。
+  // 注：这个校准本身只是配置值修正、不需要升版；但 2026-11-12 新增「国宴」分类
+  // 与 12 道菜属于 seed 结构变更，STORE_KEY 已升到 v12，本函数负责把老缓存整体重建。
+  (db.flashItems || []).forEach(f => {
+    const idx = /^fi(\d+)$/.exec(f._id || '');
+    if (idx && FLASH_SESSIONS[Number(idx[1])] && f.sessionIds !== FLASH_SESSIONS[Number(idx[1])]) {
+      f.sessionIds = FLASH_SESSIONS[Number(idx[1])];
+    }
+  });
   if (!db.flashOrders) db.flashOrders = [];
   if (!db.favorites) db.favorites = [];
   if (!db.coupons || db.coupons.length === 0) {
@@ -762,14 +851,17 @@ function fail(msg) { return { success: false, msg }; }
 
 // ===============================================================
 // 限时抢购（与后端 FlashSaleService 逐字段同源）
-// 场次按 2 小时窗口滚动：上一场已结束 / 本场进行中 / 后两场即将开始，
+// 场次为每日固定 4 个整点场（08:00 / 12:00 / 18:00 / 22:00，末场跨到次日 08:00），
+// 展示「上一场已结束 / 本场进行中 / 后两场即将开始」，全天无空档，
 // 保证任何时刻界面上三种状态都可见，便于演示与验收。
 // ===============================================================
 const FLASH_RATES = [0.5, 0.6, 0.55, 0.7, 0.5, 0.65, 0.6, 0.75];
 const FLASH_STOCKS = [30, 20, 0, 25, 15, 40, 10, 18];
 const FLASH_SOLD = [0, 0, 30, 0, 0, 0, 0, 0];
 const FLASH_LIMITS = [2, 1, 2, 3, 1, 2, 1, 2];
-const FLASH_SESSIONS = ['s1,s2', 's2', 's2,s3', 's2,s3', 's3,s4', 's3,s4', 's4,s1', 's2,s4'];
+// 与后端 FlashSaleService.SESSIONS 同源（2026-11-11）：滚动窗口下 s2 恒为当前场，
+// 所有在售商品必须含 s2 才轮得到 active、才抢得到；保留 s1/s3/s4 让场次切换有差异。
+const FLASH_SESSIONS = ['s1,s2', 's2', 's2,s3', 's2,s3', 's2,s3,s4', 's2,s3,s4', 's1,s2,s4', 's2,s4'];
 
 /** 从现有菜单取前 8 道在售菜生成活动商品，菜名/图片/原价做快照 */
 function buildFlashSeed(dishes, now) {
@@ -799,19 +891,41 @@ function buildFlashSeed(dishes, now) {
 
 function pad2(n) { return n < 10 ? '0' + n : '' + n; }
 
+/** 每日固定场次起始整点，与后端 FlashSaleService.SLOT_START_HOURS 完全一致：
+ *  早市场 08:00 / 午市场 12:00 / 夜市场 18:00 / 宵夜场 22:00（跨到次日 08:00）。 */
+const FLASH_SLOT_HOURS = [8, 12, 18, 22];
+
 function flashSessions(nowMs) {
   const now = new Date(nowMs);
-  const baseHour = Math.floor(now.getHours() / 2) * 2;
-  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate(), baseHour, 0, 0, 0).getTime();
-  const H = 2 * 3600 * 1000;
   const hhmm = ts => {
     const d = new Date(ts);
     return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   };
+  const len = FLASH_SLOT_HOURS.length;
+  const dayShift = idx => Math.floor(idx / len);
+  const norm = idx => ((idx % len) + len) % len;
+  const slotStart = idx => new Date(
+    now.getFullYear(), now.getMonth(), now.getDate() + dayShift(idx),
+    FLASH_SLOT_HOURS[norm(idx)], 0, 0, 0).getTime();
+  const slotEnd = idx => {
+    const i = norm(idx);
+    const d = dayShift(idx);
+    return i + 1 < len
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + d,
+          FLASH_SLOT_HOURS[i + 1], 0, 0, 0).getTime()
+      : new Date(now.getFullYear(), now.getMonth(), now.getDate() + d + 1,
+          FLASH_SLOT_HOURS[0], 0, 0, 0).getTime();
+  };
+  // 当前时刻落在第几场；早于首场（0~7 点）属于前一天的末场 → -1
+  let curIdx = -1;
+  const hour = now.getHours();
+  for (let i = 0; i < len; i++) if (hour >= FLASH_SLOT_HOURS[i]) curIdx = i;
+
   const list = [];
   for (let i = 0; i < 4; i++) {
-    const start = base + (i - 1) * H;
-    const end = start + H;
+    const idx = curIdx + i - 1;
+    const start = slotStart(idx);
+    const end = slotEnd(idx);
     let status, target;
     if (nowMs < start) { status = 'upcoming'; target = start; }
     else if (nowMs < end) { status = 'active'; target = end; }
@@ -827,10 +941,13 @@ function flashSessions(nowMs) {
       label: status === 'active' ? '抢购中' : (status === 'ended' ? '已结束' : '即将开抢')
     });
   }
+  // active 按「真实时间窗是否含 now」选出，与后端 FlashSaleService.isActive 同源，
+  // 不写死 list[1]（位置符号）：滚动窗口下恰好是第 2 场，但语义由时间决定。
+  const activeSession = list.find(s => nowMs >= s.startAt && nowMs < s.endAt);
   return {
     serverTime: nowMs,
     sessions: list,
-    activeSessionId: list[1].id,
+    activeSessionId: activeSession ? activeSession.id : list[1].id,
     date: now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate())
   };
 }
@@ -2292,6 +2409,20 @@ const handlers = {
         }
       });
 
+      // 抢购单金额并入（与后端 AdminController.stats 同源，2026-11-11）。
+      // flash_order 无 shop_id，全部归属 SHOP_ID：全局口径或本店口径才纳入。
+      // 只并入「钱」，不动订单数/状态分布（flash 状态 pending/paid/canceled 与主订单七态不同源）。
+      const flashIncluded = !e.shopId || e.shopId === SHOP_ID;
+      const flashPaid = flashIncluded
+        ? (db.flashOrders || []).filter(o => o.status === 'paid') : [];
+      // 抢购净额 = payAmount（服务端已按 抢购价×件数 − 券 算好，mock 同规则）
+      const flashRevenueOf = o => Math.max(0, Number(o.payAmount) || 0);
+      let flashTodayAmount = 0;
+      flashPaid.forEach(o => {
+        if (o.createTime >= todayStart) flashTodayAmount += flashRevenueOf(o);
+      });
+      todayAmount += flashTodayAmount;
+
       // 近 7 日（含今天），与后端同一窗口：今天往前数 6 天。
       // 每天带 statusCount（当日订单状态分布），供统计页点选日期后
       // 展示「那天」的状态分布——只有汇总量的话点过去也看不到当天构成。
@@ -2312,6 +2443,10 @@ const handlers = {
             if (dayStatus[o.status] !== undefined) dayStatus[o.status]++;
             if (isPaid(o.status)) amount += revenueOf(o);
           }
+        });
+        // 抢购单只加金额，不加 orderCount/statusCount（与后端同源）
+        flashPaid.forEach(o => {
+          if (o.createTime >= start && o.createTime < end) amount += flashRevenueOf(o);
         });
         daily.push({
           date: pad(day.getMonth() + 1) + '-' + pad(day.getDate()),
@@ -2334,6 +2469,9 @@ const handlers = {
           todayOrderCount,
           todayAmount: money(todayAmount),
           pendingCount: all.filter(o => o.status === 'paid').length,
+          // 拆解字段：今日营业额里来自抢购的部分（前端可选展示，与后端同名字段）
+          flashTodayAmount: money(flashTodayAmount),
+          flashTodayCount: flashPaid.filter(o => o.createTime >= todayStart).length,
           dishTotal: db.dishes.filter(x => x.shopId === shopId).length,
           categoryTotal: db.categories.filter(x => x.shopId === shopId).length,
           statusCount,
@@ -2369,7 +2507,24 @@ const handlers = {
         ].join(','));
       });
 
-      const rows = all.length;
+      // 抢购单并入导出（与后端 buildCsv 同源，2026-11-11）。
+      // 全部状态导出，取餐号列写「抢购」以便对账区分；无等级/积分/余额/配送费概念，填 0。
+      const flashAll = (!e.shopId || e.shopId === SHOP_ID) ? (db.flashOrders || []) : [];
+      const flashLabel = s => '抢购·' + (s === 'paid' ? '已支付' : s === 'canceled' ? '已取消' : '待支付');
+      flashAll.forEach(o => {
+        if (e.from && (o.createTime == null || o.createTime < e.from)) return;
+        if (e.to && (o.createTime == null || o.createTime > e.to)) return;
+        lines.push([
+          cell('抢购'), cell(o.orderNo), cell(''), cell(flashLabel(o.status)),
+          cell(fmtTime(o.createTime)), cell(cell(o.itemName) + 'x' + (o.qty || 1)),
+          num(o.subtotal), num(o.couponAmount), num(0),
+          num(0), num(0), num(o.payAmount)
+        ].join(','));
+      });
+
+      const rows = all.length + flashAll.filter(o =>
+        (!e.from || (o.createTime != null && o.createTime >= e.from))
+        && (!e.to || (o.createTime != null && o.createTime <= e.to))).length;
       return ok({
         data: {
           // 末尾补一个换行，与后端逐行 append('\n') 的输出逐字节一致。
@@ -2463,7 +2618,11 @@ const handlers = {
       const info = flashSessions(now);
       const sid = e.sessionId || info.activeSessionId;
       const cur = info.sessions.find(s => s.id === sid);
-      if (!cur || cur.status !== 'active') return fail('本场抢购尚未开始或已结束');
+      // 按真实时间窗判 active（与后端 FlashSaleService.isActive 同源，2026-11-11）：
+      // 不用 cur.status（那是按列表位置推算的符号），用 now 是否落在 [startAt,endAt)。
+      if (!cur || !(now >= cur.startAt && now < cur.endAt)) {
+        return fail('本场抢购尚未开始或已结束');
+      }
 
       const f = db.flashItems.find(x => x._id === e.itemId);
       if (!f || f.status !== 'on') return fail('商品不存在或已下架');

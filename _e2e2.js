@@ -325,6 +325,30 @@ async function req(path, method, body, withToken) {
   });
   log(reuse.success === false, '已使用的券不能再下单核销', reuse.msg || '');
 
+  // 幂等命中必须回传 ownerKey（板块2，2026-11-11）：
+  // 首次请求落库但响应丢失、前端带同一 clientRequestId 重试时，走的是
+  // OrderService.findByClientRequestId 的 dup 分支，而非正常 create 路径。
+  // 两条路径若字段不一致（尤其 ownerKey），游客重试成功后会存不下 X-Order-Token，
+  // 后续查单/取消/支付全被默认拒绝的鉴权挡死 —— 表现为「下单成功却查不到单」。
+  // 这里连发两次同一幂等键，断言第二次命中同一单且 ownerKey 与首单同源非空。
+  head('5a. 下单幂等命中回传 ownerKey（游客认单凭证）');
+  const idemKey = 'e2e-idem-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const idemBody = { shopId: SHOP, tableNo: '9', items: cheapItems, clientRequestId: idemKey };
+  const idem1 = await req('/order', 'POST', idemBody);
+  const idem2 = await req('/order', 'POST', idemBody);
+  log(idem1.success && idem2.success, '同一 clientRequestId 两次请求都返回成功',
+    'orderId=' + (idem2.orderId || ''));
+  log(idem1.orderId === idem2.orderId, '幂等命中返回同一笔订单（未重复建单）',
+    idem1.orderId + ' / ' + idem2.orderId);
+  log(!!idem1.ownerKey && idem1.ownerKey === idem2.ownerKey,
+    '幂等命中回传的 ownerKey 非空且与首单一致（游客认单不断链）',
+    String(idem2.ownerKey || '').slice(0, 12) + '…');
+  // 用首单 ownerKey 反查详情，证明凭证真能认单（不是只回传了个字段）
+  const idemDetail = await fetch(BASE + '/order/' + idem2.orderId,
+    { headers: { 'X-Order-Token': idem2.ownerKey } }).then(r => r.json());
+  log(idemDetail.success && !!idemDetail.data,
+    '凭幂等返回的 ownerKey 能查到订单（凭证可用）', idemDetail.msg || '');
+
   // ==================== 6) 菜品评价 ====================
   head('6. 菜品评价');
   const notDone = await req('/review', 'POST', {
@@ -620,6 +644,40 @@ async function req(path, method, body, withToken) {
     + '/积分 ' + demoTop9.pointsAfter + '分');
   const backLogin9 = await req('/member/login', 'POST', { phone: PHONE });
   MEMBER_TOKEN = (backLogin9.data || {}).memberToken || '';
+
+  // ==================== 10) 板块8A：并发评价唯一约束 ====================
+  head('10. 并发评价（uk_review_order_dish 唯一约束）');
+  // 第 9 段末尾切过演示账号/又登回，MEMBER_TOKEN 可能已失效；这里显式重登一次，
+  // 避免「前置建单失败」被误报成并发逻辑问题。
+  const relogin10 = await loginWithCode(PHONE);
+  MEMBER_TOKEN = (relogin10.data || {}).memberToken || MEMBER_TOKEN;
+  // 用一笔全新订单，避免干扰前面已评价/已对账的数据。推进到 done 才能评价。
+  const rvOrder = await req('/order', 'POST', {
+    shopId: SHOP, memberId: PHONE, items: cheapItems
+  });
+  let concurrentVerdict = '前置失败';
+  if (rvOrder.success) {
+    // 状态机 unpaid → paid → preparing → done（见 OrderService.allowedNext）
+    await req('/order/' + rvOrder.orderId + '/pay', 'POST');
+    await req('/order/' + rvOrder.orderId + '/status?status=preparing', 'PATCH', null, true);
+    const toDone = await req('/order/' + rvOrder.orderId + '/status?status=done', 'PATCH', null, true);
+    const payload = { shopId: SHOP, orderId: rvOrder.orderId, dishId: d1._id,
+      rating: 5, content: '并发评价测试' };
+    log(toDone.success, '前置：新订单推进到已完成', toDone.msg || '');
+    const [ra, rb] = await Promise.all([
+      req('/review', 'POST', payload), req('/review', 'POST', payload)
+    ]);
+    const okCount = [ra, rb].filter(r => r.success).length;
+    const no500 = ![ra, rb].some(r => /内部错误|稍后重试/.test(r.msg || ''));
+    concurrentVerdict = '成功 ' + okCount + ' / 1，msg=' + (ra.msg || ra._id) + '|' + (rb.msg || rb._id);
+    log(okCount === 1 && no500,
+      '并发重复评价只有一个成功，另一个被唯一约束挡下（不报 500）', concurrentVerdict);
+    log(/已经评价过/.test(String((ra.success ? rb : ra).msg || '')),
+      '被挡下的那笔返回「已经评价过」业务提示而非内部错误',
+      String((ra.success ? rb : ra).msg || ''));
+  } else {
+    log(false, '前置条件：新建评价测试订单失败', rvOrder.msg || '');
+  }
 
   console.log('\n========================================');
   console.log('  通过 ' + pass + ' 项，失败 ' + fail + ' 项');
