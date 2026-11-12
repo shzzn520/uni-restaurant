@@ -55,6 +55,7 @@
     <button class="menu-btn" @tap="goMenu">菜品管理</button>
     <button class="menu-btn ghost" @tap="goCoupons">优惠券管理</button>
     <button class="menu-btn ghost" @tap="goRefunds">售后申请</button>
+    <button class="menu-btn ghost" @tap="goShops">门店管理</button>
   </view>
 </view>
 </template>
@@ -199,6 +200,10 @@ export default {
 
     goRefunds() {
       uni.navigateTo({ url: '/pages/merchant/refundRequests/refundRequests' });
+    },
+
+    goShops() {
+      uni.navigateTo({ url: '/pages/merchant/shops/shops' });
     }
   }
 }

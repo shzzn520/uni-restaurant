@@ -1115,6 +1115,17 @@ function quotePoints(db, memberId, usePoints, orderAmount) {
 const handlers = {
   // 店铺
   cloudShop(e) {
+    const normalizeShop = data => ({
+      name: String(data.name || '').trim(),
+      address: String(data.address || '').trim(),
+      desc: String(data.desc || '').trim(),
+      latitude: Number(data.latitude),
+      longitude: Number(data.longitude)
+    });
+    const validShop = shop => shop.name && shop.address
+      && Number.isFinite(shop.latitude) && shop.latitude >= -90 && shop.latitude <= 90
+      && Number.isFinite(shop.longitude) && shop.longitude >= -180 && shop.longitude <= 180;
+
     if (e.action === 'get') {
       const db = load();
       // 返回被查询的门店本身（让「切换门店」后首页顶栏/门店卡片显示对应店名地址）；
@@ -1129,6 +1140,44 @@ const handlers = {
       // 注意：mock 的 call 把参数摊平在 e 顶层（非 e.data），见文件底部 call()
       const raw = db.shops || [Object.assign({ distance: '', address: '' }, db.shop)];
       return ok({ data: { shops: locateShops(raw, e.lat, e.lng) } });
+    }
+    if (e.action === 'create') {
+      const db = load();
+      const shop = normalizeShop(e.data || {});
+      if (!validShop(shop)) return fail('请填写有效的门店名称、地址和经纬度');
+      const created = Object.assign({
+        _id: 'shop-' + db.seq++,
+        distance: ''
+      }, shop);
+      db.shops = (db.shops || []).concat(created);
+      save(db);
+      return ok({ data: created });
+    }
+    if (e.action === 'update') {
+      const db = load();
+      const shop = normalizeShop(e.data || {});
+      if (!validShop(shop)) return fail('请填写有效的门店名称、地址和经纬度');
+      const index = (db.shops || []).findIndex(item => item._id === e.id);
+      if (index < 0) return fail('门店不存在');
+      db.shops[index] = Object.assign({}, db.shops[index], shop);
+      save(db);
+      return ok({ data: db.shops[index] });
+    }
+    if (e.action === 'delete') {
+      const db = load();
+      const index = (db.shops || []).findIndex(item => item._id === e.id);
+      if (index < 0) return fail('门店不存在');
+      if (db.shops.length <= 1) return fail('至少保留一家门店');
+      if ((db.orders || []).some(order => order.shopId === e.id)) {
+        return fail('该门店已有订单，不能删除');
+      }
+      db.shops.splice(index, 1);
+      db.categories = (db.categories || []).filter(item => item.shopId !== e.id);
+      db.dishes = (db.dishes || []).filter(item => item.shopId !== e.id);
+      db.coupons = (db.coupons || []).filter(item => item.shopId !== e.id);
+      db.flashItems = (db.flashItems || []).filter(item => item.shopId !== e.id);
+      save(db);
+      return ok({ data: { id: e.id } });
     }
     if (e.action === 'initDemo') {
       save(buildSeed()); // 重置演示数据
