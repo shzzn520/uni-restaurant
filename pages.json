@@ -118,6 +118,15 @@
             "navigationBarBackgroundColor": "#087c61",
             "navigationBarTextStyle": "white"
           }
+        },
+        {
+          "path": "shops/shops",
+          "style": {
+            "navigationBarTitleText": "门店管理",
+            "navigationBarBackgroundColor": "#087c61",
+            "navigationBarTextStyle": "white",
+            "backgroundColor": "#f2f8f6"
+          }
         }
       ]
     },

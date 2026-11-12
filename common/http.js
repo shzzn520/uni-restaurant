@@ -10,8 +10,8 @@
 //   于是页面代码一行都不用改，就能从「本地模拟」切到「真后端」。
 //
 // 后端接口一览（详见 restaurant-server/README.md）：
-//   GET    /api/shop?shopId=
-//   GET    /api/shop/list
+//   GET    /api/shop?shopId=     GET /api/shop/list
+//   POST   /api/shop             PUT /api/shop/{id}    DELETE /api/shop/{id}
 //   POST   /api/shop/init-demo
 //   GET    /api/menu?shopId=&role=
 //   GET    /api/combo?shopId=          ← 1+1 随心配套餐分区数据
@@ -108,6 +108,16 @@ const routes = {
   // 供「门店定位栏 / 门店选择页」展示与切换（仿麦当劳外卖）
   'cloudShop/list': d =>
     request('/shop/list' + qs({ lat: d.lat, lng: d.lng })),
+
+  // 商家门店管理；写操作由 X-Shop-Token 鉴权。
+  'cloudShop/create': d =>
+    request('/shop', 'POST', d.data),
+
+  'cloudShop/update': d =>
+    request('/shop/' + encodeURIComponent(d.id), 'PUT', d.data),
+
+  'cloudShop/delete': d =>
+    request('/shop/' + encodeURIComponent(d.id), 'DELETE'),
 
   // ---------------- 套餐（1+1 随心配） ----------------
   // 返回信封 {success,data:{name,price,zones:[{key,name,pick,dishes}]}}
