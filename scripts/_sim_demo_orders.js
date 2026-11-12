@@ -1,6 +1,6 @@
 // 临时脚本：按 DemoOrderSeeder 的确定性规则模拟新菜品池（17 个可见菜品）下的演示订单，
 // 输出 6 笔会员单的 orderId/status/payAmount，供 DemoMemberSeeder 的流水种子使用。
-// 用法：node _sim_demo_orders.js
+// 用法：node scripts/_sim_demo_orders.js
 const DISHES = [ // [id, price]，与 DataSeeder 一致（套餐区 6 个 price=0 会被过滤）
   ['d0', 68], ['d1', 14], ['d2', 28], ['d3', 26], ['d4', 24], ['d5', 6],
   ['d6', 12], ['d7', 10], ['d8', 18], ['d9', 0], ['d10', 0], ['d11', 0],

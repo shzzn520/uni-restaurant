@@ -1,6 +1,6 @@
 // _e2e_fix.js —— 2026-10-21 安全与一致性修复专项回归
 //
-// 运行：node _e2e_fix.js
+// 运行：node tests/_e2e_fix.js
 // 前置：MySQL 已启动、Spring Boot 后端跑在 8080
 //
 // 覆盖本轮修复的 13 个问题（逐条对应原始问题清单）：
@@ -530,7 +530,7 @@ async function createOrder(items, extra) {
   head('#10 / #11 / #12 前端静态校验');
   // ================================================================
   {
-    const root = path.join(__dirname);
+    const root = path.join(__dirname, '..');
     const confirmSrc = fs.readFileSync(path.join(root, 'pages/customer/confirm/confirm.vue'), 'utf8');
     const orderSrc = fs.readFileSync(path.join(root, 'pages/customer/order/order.vue'), 'utf8');
     const ordersSrc = fs.readFileSync(path.join(root, 'pages/customer/orders/orders.vue'), 'utf8');

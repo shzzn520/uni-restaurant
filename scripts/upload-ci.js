@@ -9,7 +9,7 @@
 //   4. 若后台配了「IP 白名单」，需把本机公网 IP 加进去
 //
 // 用法：
-//   node upload-ci.js --version 1.0.0 --desc "餐厅点单系统首发版"
+//   node scripts/upload-ci.js --version 1.0.0 --desc "餐厅点单系统首发版"
 //
 // 行为说明：
 //   - 优先使用新鲜的发行产物；发行产物过期时可回退到新鲜开发产物
@@ -20,12 +20,12 @@
 
 const path = require('path');
 const fs = require('fs');
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, '..');
 
 // ---------- 依赖解析 ----------
 // miniprogram-ci 装在受管 node workspace 下（避免污染项目）。
 // 若项目本地没有 node_modules/miniprogram-ci，则把 workspace 的 node_modules
-// 追加进解析路径，这样在项目根目录直接 `node upload-ci.js` 即可运行。
+// 追加进解析路径，这样在项目根目录直接 `node scripts/upload-ci.js` 即可运行。
 const WORKSPACE_NM = 'C:/Users/那年夏天/.workbuddy/binaries/node/workspace/node_modules';
 const LOCAL_NM = path.join(ROOT, 'node_modules');
 if (!fs.existsSync(path.join(LOCAL_NM, 'miniprogram-ci'))) {
@@ -77,7 +77,7 @@ function latestMtime(paths) {
 
 const SOURCE_PATHS = [
   'App.vue', 'main.js', 'manifest.json', 'pages.json', 'uni.scss',
-  'common', 'pages', 'static'
+  'common', 'components', 'mixins', 'pages', 'static'
 ].map((name) => path.join(ROOT, name));
 const sourceMtime = latestMtime(SOURCE_PATHS);
 const buildMtime = fs.existsSync(BUILD_DIR) ? latestMtime([BUILD_DIR]) : 0;

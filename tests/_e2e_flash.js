@@ -1,6 +1,6 @@
 // _e2e_flash.js —— 限时抢购模块端到端验证（真实 Spring Boot 后端）
 //
-// 运行：node _e2e_flash.js
+// 运行：node tests/_e2e_flash.js
 // 前置：MySQL 已启动；后端以 SMS_DEMO_MODE=true 跑在 8080
 //
 // 与 _e2e_mock.js 末尾的「限时抢购」段刻意使用同一组断言文案，

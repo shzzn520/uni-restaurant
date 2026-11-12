@@ -11,7 +11,7 @@
  * 重要：全程使用**临时账号**（不碰演示账号 13800001234），
  *      演示账号的余额/积分/券必须保持原样，只在最后做一次无副作用试算。
  *
- * 用法：node _demo.js
+ * 用法：node scripts/_demo.js
  */
 const BASE = 'http://127.0.0.1:8080/api';
 const SHOP = 'demo-shop';

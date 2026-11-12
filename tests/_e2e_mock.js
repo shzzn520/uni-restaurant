@@ -1,6 +1,6 @@
 // _e2e_mock.js —— 验证本地模拟层（useMock=true）与后端行为一致
 //
-// 运行：node _e2e_mock.js
+// 运行：node tests/_e2e_mock.js
 // 目的：mock 是演示环境的默认路径。若它与后端算出不同的金额，
 //      课堂上「关掉后端用模拟数据」演示出来的结果就是错的。
 //      重点比对两端的口径，不是逐字节比对响应体。
@@ -15,7 +15,7 @@ global.uni = {
   removeStorageSync: k => { delete store[k]; }
 };
 
-const mock = require('./common/mock.js');
+const mock = require('../common/mock.js');
 
 let pass = 0, fail = 0;
 function log(ok, name, extra) {
@@ -1082,8 +1082,8 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   // HTTP adapter contract probes: stub uni.request so routes, verbs, payloads and identity headers
   // are checked without a running backend or network access.
   head('15. HTTP 路由契约（stub uni.request）');
-  const http = require('./common/http.js');
-  const sessionApi = require('./common/session.js');
+  const http = require('../common/http.js');
+  const sessionApi = require('../common/session.js');
   store['shopToken'] = 'merchant-session';
   sessionApi.setOwnerKey('contract-order', 'order-owner');
   let lastHttpRequest = null;
@@ -1146,7 +1146,9 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
 
   // Customer-visible wording must not imply an external payment/refund completed.
   head('16. 支付与售后状态文案');
-  const customerOrderUi = fs.readFileSync('pages/customer/order/order.vue', 'utf8');
+  // 页面逻辑已抽到 mixins/order-detail.js，文案断言需同时读页面与混入
+  const customerOrderUi = fs.readFileSync('pages/customer/order/order.vue', 'utf8')
+    + fs.readFileSync('mixins/order-detail.js', 'utf8');
   const merchantRefundUi = fs.readFileSync('pages/merchant/refundRequests/refundRequests.vue', 'utf8');
   const readme = fs.readFileSync('README.md', 'utf8');
   log(customerOrderUi.includes('继续模拟支付')

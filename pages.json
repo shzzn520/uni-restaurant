@@ -245,6 +245,9 @@
       ]
     }
   ],
+  "easycom": {
+    "autoscan": true
+  },
   "globalStyle": {
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "扫码点单",

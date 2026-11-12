@@ -1,0 +1,19 @@
+{
+  "name": "uni-restaurant",
+  "version": "1.0.0",
+  "private": true,
+  "description": "餐厅扫码点单系统（uni-app + Vue2，H5 / 微信小程序）",
+  "scripts": {
+    "test": "npm run test:rules && npm run test:syntax && npm run test:mock",
+    "test:rules": "node tests/rules.test.js",
+    "test:syntax": "node tests/_check.js",
+    "test:mock": "node tests/_e2e_mock.js",
+    "audit:methods": "node tests/_audit_methods.js",
+    "lint": "eslint pages components common tests --ext .js,.vue"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.33.0",
+    "vue-eslint-parser": "^9.4.3"
+  }
+}

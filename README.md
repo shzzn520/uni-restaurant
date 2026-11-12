@@ -14,22 +14,46 @@ uni-restaurant/
 ├── manifest.json        # 应用配置（已填 mp-weixin AppID + 关闭域名校验）
 ├── pages.json           # 页面路由与导航栏主题
 ├── uni.scss / index.html# uni-app 脚手架文件
-├── common/              # 数据访问层（与原生工程 utils/ 一一对应）
+├── common/              # 数据访问层
 │   ├── config.js        # 唯一开关：useMock（true=本地模拟 / false=走后端）
 │   ├── cloud.js         # 统一入口 call(name, action, data)，页面不感知数据源
 │   ├── http.js          # useMock=false 时，把 action 翻译成 REST 请求
 │   ├── mock.js          # useMock=true 时，用 uni.storage 模拟云函数
+│   ├── rules.js         # 优惠券/等级/积分/配送规则（mock 与页面唯一来源）
 │   ├── session.js       # 会员登录态（手机号）与本地会话缓存
 │   └── format.js        # 状态机文案、金额/时间格式化、投诉原因常量
-├── static/food/         # 17 张菜品图（9 张 Pexels 实拍 + 8 张 AI 生成配图，144px 压缩）
+├── components/          # 通用组件（easycom 自动注册，无需 import）
+│   ├── dish-card/       # 菜品行（菜单分类 + 搜索结果共用）
+│   ├── stepper/         # 数量加减
+│   ├── amount-summary/  # 费用明细（结算页 + 订单详情共用）
+│   ├── coupon-sheet/    # 优惠券选择弹层
+│   ├── order-progress/  # 外卖交接节点 / 自取进度条
+│   └── empty-state/     # 空态 / 错误态 / 未登录态
+├── mixins/              # 大页面的行为逻辑（页面只保留模板与样式）
+│   ├── menu-cart.js     # 菜单：分类 / 搜索 / 购物车 / 详情
+│   ├── checkout.js      # 结算：试算 / 选券 / 提交支付
+│   ├── member-center.js # 会员：储值 / 积分 / 券包
+│   └── order-detail.js  # 订单详情：状态轮询 / 评价 / 售后
 ├── pages/
-│   ├── customer/        # index(扫码进店) / menu(点餐+搜索) / combo(1+1套餐) / confirm(确认+优惠结算)
-│   │                    #   / order(订单状态) / orders(本桌订单列表) / member(会员中心) / review(发表评价)
-│   │                    #   / stores(门店选择·定位就近推荐) / bill(会员资产流水) / address(地址簿)
-│   └── merchant/        # 商家端：login / orders / orderDetail / menu / feedback / stats / coupons / refundRequests
-├── _check.js            # 本地语法自检脚本（node _check.js）
-├── _e2e2.js             # 营销与会员功能端到端测试（需后端已启动，92 项）
-└── _e2e_mock.js         # mock 层与后端口径一致性测试（106 项，无需后端）
+│   ├── customer/        # index / menu / combo / confirm / order / orders / member / review
+│   │                    #   / stores / bill / address / favorites / flash / flashDetail / flashOrders
+│   └── merchant/        # login / orders / orderDetail / menu / feedback / stats / coupons / refundRequests
+├── static/food/         # 菜品图（打包资源）
+├── tests/               # 自动化测试
+│   ├── rules.test.js    # 业务规则单元测试（零依赖）
+│   ├── _check.js        # 页面/组件/混入/模块语法自检
+│   ├── _audit_methods.js# 事件函数是否都在 methods 内
+│   ├── _e2e_mock.js     # mock 全链路测试（217 项，无需后端）
+│   ├── _e2e2.js         # 后端联调测试（需启动 Spring Boot）
+│   └── _verify_backend.py
+├── scripts/             # 运维与演示脚本
+│   ├── _demo.js / _sim_demo_orders.js
+│   ├── upload-ci.js     # 小程序 CI 上传
+│   └── db/              # 数据库初始化/重置 SQL
+├── docs/                # 产品说明与审查报告
+├── assets/backup-food/  # 菜品图历史备份（不参与打包）
+├── package.json         # npm scripts（test / lint）
+└── .github/workflows/ci.yml
 ```
 
 ### 与原生工程的关键差异（迁移已处理）
@@ -123,24 +147,25 @@ start-server.bat        :: 默认强制端口 8080，启动后访问 http://loca
 
 ---
 
-## 五、自检
+## 五、自检与测试
 
 ```bash
-node _check.js
-# 输出所有页面脚本的语法检查结果
+npm install          # 首次安装 ESLint 等开发依赖
+npm test             # 规则单测 + 语法自检 + mock 全链路（217 项）
+npm run lint         # ESLint（页面 / 组件 / 公共模块 / 测试）
+npm run audit:methods# 事件函数是否都挂在 methods 内
 ```
 
-该脚本用 Node 的 `vm.Script` 对各页 `<script>` 做语法校验（不依赖 HBuilderX），
-迁移/改动后跑一遍可快速发现括号、分号等低级语法错误。
-另有 `node _audit_methods.js`：核对每个页面的事件函数都挂在 `methods` 内
-（uni-app 顶层普通函数会被静默丢弃，按钮点了没反应先查这条）。
+| 命令 | 作用 |
+|---|---|
+| `npm run test:rules` | `common/rules.js` 的优惠/等级/积分/配送规则单测（零依赖） |
+| `npm run test:syntax` | 用 `vm.Script` 编译 41 个页面/组件/混入/模块，查低级语法错误 |
+| `npm run test:mock` | 无需后端，跑 mock 全链路 217 项断言 |
+| `node tests/_e2e2.js` | 后端联调测试（需先启动 MySQL 与 Spring Boot） |
 
-### 功能级测试
-
-```bash
-node _e2e_mock.js   # 无需后端，验证 mock 业务流程与后端约定
-node _e2e2.js       # 92 项，需先启动 MySQL 与后端
-```
+> CI：`.github/workflows/ci.yml` 会在 push / PR 时执行 `npm run lint` 与 `npm test`。
+> `tests/_e2e_mock.js` 会自造 `uni` 桩跑 `common/mock.js`，验证「前端显示金额」与
+> 「服务端实收金额」使用同一套规则。
 
 `_e2e_mock.js` 会自造 `uni` 桩跑 `common/mock.js`。它的存在意义是：
 **mock 与后端必须算出同一个金额**，否则课堂上切换数据源演示时，

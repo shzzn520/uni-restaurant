@@ -8,12 +8,12 @@
  *   Page "pages/xxx/xxx" does not have a method "yyy"
  * 表现就是「按钮点了完全没反应」，且编译期没有任何提示。
  *
- * 用法：node _audit_methods.js
+ * 用法：node tests/_audit_methods.js
  */
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, '..');
 
 // 顶层允许的键：生命周期钩子 + Vue 内置选项
 const LIFECYCLE = new Set([
@@ -145,6 +145,18 @@ function walk(dir, out) {
   return out;
 }
 
+/** 页面通过 require('@/mixins/x.js') 引入的行为文件，方法在里面也算数 */
+function mixinSources(script) {
+  const out = [];
+  const re = /const\s+(\w+)\s*=\s*require\('@\/(mixins\/[^']+)'\)/g;
+  let m;
+  while ((m = re.exec(script))) {
+    const file = path.join(ROOT, m[2]);
+    if (fs.existsSync(file)) out.push(fs.readFileSync(file, 'utf8'));
+  }
+  return out;
+}
+
 const files = walk(ROOT, []).sort();
 let bad = 0;
 
@@ -157,6 +169,10 @@ files.forEach(f => {
   const script = sm[1];
   const tops = topLevelKeys(script);
   const inMethods = methodKeys(script);
+  // 页面把逻辑抽到 mixins 后，模板事件的方法定义在混入文件里
+  mixinSources(script).forEach(mix => {
+    methodKeys(mix.replace('module.exports', 'export default')).forEach(n => inMethods.add(n));
+  });
   const handlerNames = templateHandlers(full);
 
   const problems = [];
@@ -170,6 +186,7 @@ files.forEach(f => {
 
   // ② 模板里绑定了、但 methods 里也找不到的处理函数
   handlerNames.forEach(n => {
+    if (n.startsWith('$')) return;          //  等 Vue 内置方法
     if (inMethods.has(n)) return;
     if (tops.indexOf(n) >= 0) return;            // 已在 ① 报过
     problems.push('模板绑定了 ' + n + '()，但 methods 中不存在');
