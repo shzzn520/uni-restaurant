@@ -11,7 +11,7 @@
 // 演示数据也相应带上。旧库里这两列是 undefined，商家端导出的 CSV 与统计会缺列，
 // 因此必须换键让 load() 走一遍重建。
 // 升键时记得同步测试脚本里硬编码的 'mock_db_vN'（历史上漏改过一次，读到 undefined 直接抛异常）。
-const STORE_KEY = 'mock_db_v14'; // 本地缓存键（v14：异国菜按原产国价核价调价 + 多人份菜补份量标注，seed 结构变更必须升版）
+const STORE_KEY = 'mock_db_v15'; // 本地缓存键（v15：麻辣小龙虾/黄金流沙包/板烧鸡腿堡 从菜单移除，seed 结构变更必须升版）
 const SHOP_ID = 'demo-shop';    // 演示店铺 ID
 const session = require('./session.js');
 
@@ -658,8 +658,12 @@ function buildSeed() {
     ['鲜榨橙汁', 12, 2, '无添加，现榨'],
     ['薯条', 10, 3, '黄金脆薯'],
     ['招牌烤翅', 18, 3, '秘制腌料，外焦里嫩'],
-    ['麻辣小龙虾', 68, 0, '夏季限定，麻辣鲜香'],
-    ['黄金流沙包', 14, 0, '爆浆流沙，招牌甜点'],
+    // 分类号填 99 = 已从菜单移除（哨兵位，与后端 DataSeeder.DISH_ROWS 同源）。
+    // 不删数组行是因为菜品 id 由下标决定，删行会让后面所有菜 id 前移：演示订单按下标
+    // 取菜、套餐虚拟 ID 写死 d9@d13 会整片错位。填 99 后 categoryId 指向不存在的分类，
+    // 前端按分类分组时自然不出现，而 id / 订单引用 / 图片全部不变。
+    ['麻辣小龙虾', 68, 99, '夏季限定，麻辣鲜香'],   // 2026-11-12 按用户要求下架
+    ['黄金流沙包', 14, 99, '爆浆流沙，招牌甜点'],   // 2026-11-12 按用户要求下架
     // ↓↓↓ 1+1 随心配套餐可选商品，一口价时不参与算价（price 置 0）
     ['双层吉士汉堡', 0, 4, '双片吉士两块纯牛肉饼'],
     ['麦香鸡', 0, 4, '鲜蔬搭配脆鸡排'],
@@ -671,7 +675,7 @@ function buildSeed() {
     // 刻意整体接在套餐分区之后追加，不打乱前 15 项的下标 —— seedDemoData 按下标取菜，
     // 且 _e2e_mock/_e2e2 的套餐虚拟 ID 写死了 d9@d13（双层吉士汉堡@中杯可乐），
     // 插在前面会让演示订单与套餐测试整片错位。块内顺序即下标顺序，图片文件名与之对齐。
-    ['板烧鸡腿堡', 24, 0, '炭烤鸡腿排，秘制酱料'],
+    ['板烧鸡腿堡', 24, 99, '炭烤鸡腿排，秘制酱料'],  // 2026-11-12 按用户要求下架
     ['台式卤肉饭', 22, 1, '卤肉软糯，酱汁拌饭'],
     ['酸菜鱼面', 30, 1, '酸辣鱼片，手工面条'],
     ['柠檬红茶', 9, 2, '鲜柠檬现泡，冰爽回甘'],
@@ -759,6 +763,8 @@ function buildSeed() {
 
   // 演示订单/评价/投诉/会员只挂在 demo-shop（沿用既有演示数据，与历史下标/虚拟 ID 一致）
   const demoDishes = dishes.filter(d => d.shopId === SHOP_ID);
+  // 本店真实存在的分类 id 集合。菜品 categoryId 不在其中 = 已从菜单移除（99 哨兵位）。
+  const validCatIds = new Set(categories.filter(c => c.shopId === SHOP_ID).map(c => c._id));
 
   return {
     seq: 100,           // 自增序号，用于生成新 _id
@@ -791,8 +797,13 @@ function buildSeed() {
       status: 'on',
       createTime: now - i * 1000
     })),
-    // 限时抢购：从 demo-shop 的在售菜品生成活动商品（与后端 FlashSaleService.run 同源）
-    flashItems: buildFlashSeed(dishes.filter(d => d.shopId === SHOP_ID && d.status === 'on'), now),
+    // 限时抢购：从 demo-shop 的在售菜品生成活动商品（与后端 FlashSaleService.run 同源）。
+    // 只取「分类仍然存在」且有真实售价的菜：挂到 99 哨兵位的菜已从菜单移除；
+    // 0 元套餐料（双层吉士汉堡/麦香鸡/可乐等）单独不成餐，做成抢购商品会算出
+    // 「原价 10 → 抢购价 1」这种假折扣，一并排除。
+    flashItems: buildFlashSeed(dishes.filter(d =>
+      d.shopId === SHOP_ID && d.status === 'on' && validCatIds.has(d.categoryId)
+      && Number(d.price) > 0), now),
     flashOrders: [],
     favorites: []
     // memberCoupons / members 由上面的 seedDemoData 提供，不要再写空值覆盖

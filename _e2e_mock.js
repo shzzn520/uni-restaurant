@@ -33,7 +33,7 @@ function money(n) { return Math.round(n * 100) / 100; }
  * （频控本身在上面有专门断言，清窗口只服务于后续用例）。
  */
 async function loginWithCode(phone, nickname) {
-  const db = store['mock_db_v14'];
+  const db = store['mock_db_v15'];
   if (db && db.smsCodes) db.smsCodes = db.smsCodes.filter(x => x.phone !== phone);
   const sent = await mock.call('cloudMember', 'sendCode', { phone, scene: 'login' });
   return mock.call('cloudMember', 'login', {
@@ -68,7 +68,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   log(noCodeErr === '请输入 6 位数字验证码', '不带验证码不能登录', noCodeErr || '');
 
   // 过期码必须明确提示重新获取，且不能开户。
-  const smsRecord = store['mock_db_v14'].smsCodes.find(x => x.phone === PHONE);
+  const smsRecord = store['mock_db_v15'].smsCodes.find(x => x.phone === PHONE);
   const originalExpiry = smsRecord.expireAt;
   smsRecord.expireAt = Date.now() - 1;
   let expiredErr = null;
@@ -416,7 +416,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   // v5 起启动会播种 7 条混合评分（含 4 星、3 星）的历史评价，
   // 写死 5 星这条断言在播种上线后就成了摆设。
   const sum = await mock.call('cloudReview', 'summary', { shopId: 'demo-shop' });
-  const rawDb = store['mock_db_v14'];
+  const rawDb = store['mock_db_v15'];
   const expCount = rawDb.reviews.length;
   const expAvg = Math.round(rawDb.reviews.reduce((s, r) => s + r.rating, 0) / expCount * 10) / 10;
   log(sum.data.count === expCount && sum.data.avgRating === expAvg, '评分汇总正确（与库内评价独立重算一致）',
@@ -445,7 +445,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   log(threw === '单道菜最多点 99 份', '单品数量超上限被拒（与后端同一句提示）', threw || '');
 
   // 售罄校验（缓存键跟随 mock.js 的 STORE_KEY，升版时这里要一起改）
-  const db = store['mock_db_v14'];
+  const db = store['mock_db_v15'];
   const target = db.dishes.find(x => x._id === d2._id);
   const oldStatus = target.status;
   target.status = 'off';
@@ -487,7 +487,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   // cloudAdmin/stats 与后端 AdminController.stats 逐字段同源，
   // 这里用一份独立实现重算期望值，防止某天改了 mock 忘了改后端（或反过来）。
   head('8. 经营统计（cloudAdmin/stats）');
-  const rawForStats = store['mock_db_v14'];
+  const rawForStats = store['mock_db_v15'];
   const shopOrders = rawForStats.orders.filter(o => o.shopId === 'demo-shop');
   const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
   const todayStart = midnight.getTime();
@@ -593,7 +593,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
     '券减 ' + ord9.discountAmount + '，余额抵 ' + ord9.balancePay + '，实付 ' + ord9.payAmount);
 
   // ① create 之后：券已核销、余额已扣（这是「支付失败必须能退」的前提）
-  const mc9a = store['mock_db_v14'].memberCoupons.find(x => x._id === cp9._id);
+  const mc9a = store['mock_db_v15'].memberCoupons.find(x => x._id === cp9._id);
   const acc1 = (await mock.call('cloudMember', 'info', { userId: P2 })).data;
   log(mc9a.status === 'used', '下单即核销券（证明退款不是空操作）', mc9a.status);
   log(acc1.balance === money(100 - ord9.balancePay), '下单即扣余额',
@@ -612,7 +612,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
 
   // ④ 取消：券、余额、积分、累计消费、订单数全部退回
   await mock.call('cloudOrder', 'updateStatus', { orderId: ord9.orderId, status: 'canceled' });
-  const mc9b = store['mock_db_v14'].memberCoupons.find(x => x._id === cp9._id);
+  const mc9b = store['mock_db_v15'].memberCoupons.find(x => x._id === cp9._id);
   const acc3 = (await mock.call('cloudMember', 'info', { userId: P2 })).data;
   log(mc9b.status === 'unused' && !mc9b.useOrderId, '取消后券已退回', mc9b.status);
   log(acc3.balance === money(100), '取消后余额已退回', String(acc3.balance));
@@ -629,7 +629,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
 
   // 直接把累计消费与积分写成目标值，比真跑几单快得多。
   // 分档阈值（200/500/1000）必须与后端 CouponService.levelOf 一致。
-  const db10 = store['mock_db_v14'];
+  const db10 = store['mock_db_v15'];
   db10.members[P3].totalSpend = 300;   // 银卡档
   db10.members[P3].points = 500;
 
@@ -747,7 +747,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   head('11. 会员资产流水（充值/抵扣/赠分/退款逐笔记账）');
 
   // 末笔快照助手：流水按时间倒序，第一条就是「最近一笔之后」的状态
-  const ledgerOf = uid => (store['mock_db_v14'].memberTransactions || [])
+  const ledgerOf = uid => (store['mock_db_v15'].memberTransactions || [])
     .filter(t => t.memberId === uid)
     .sort((a, b) => b.createTime - a.createTime);
 
@@ -836,15 +836,31 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
     const cats = (m.data && m.data.categories) || [];
     const ds = (m.data && m.data.dishes) || [];
     menuCounts[sid] = ds.length;
-    // 50 = 原 23 道（含 6 道 0 元套餐料）+ 12 道国宴菜 + 21 道异国风味菜。
-    // 加菜时同步改这里；三门店一致性由下一条断言保证。
-    log(cats.length >= 4 && ds.length === 50,
+    // 47 = 原 50 道 − 3 道已移除（麻辣小龙虾 / 黄金流沙包 / 板烧鸡腿堡，见 REMOVED_DISHES）。
+    // 加菜/删菜时同步改这里；三门店一致性由下一条断言保证。
+    log(cats.length >= 4 && ds.length === 47,
       '门店 ' + sid + ' 有完整菜单', '分类 ' + cats.length + ' / 菜品 ' + ds.length);
   }
   log(menuCounts[MENU_SHOP_IDS[0]] === menuCounts[MENU_SHOP_IDS[1]]
       && menuCounts[MENU_SHOP_IDS[1]] === menuCounts[MENU_SHOP_IDS[2]],
     '三门店可见菜品数一致（就近推荐切店不再空白）',
     MENU_SHOP_IDS.map(s => s + '=' + menuCounts[s]).join(' / '));
+
+  // 已移除菜品：菜单里彻底不出现（不是「售罄置灰」），抢购商品也不能还挂着它们。
+  // 实现方式是 categoryId 挂到不存在的分类（99 哨兵位）—— 前端按分类分组时自然落不进去，
+  // 而 dish 行、id、订单历史引用全部保留。这两条断言防止以后又被「顺手改回 0 分类」。
+  const REMOVED_DISHES = ['麻辣小龙虾', '黄金流沙包', '板烧鸡腿堡'];
+  const allMenuDishes = [];
+  for (const sid of MENU_SHOP_IDS) {
+    const m = await mock.call('cloudMenu', 'getShopMenu', { shopId: sid, role: 'customer' });
+    allMenuDishes.push(...(((m.data && m.data.dishes) || [])));
+  }
+  log(REMOVED_DISHES.every(n => !allMenuDishes.some(d => d.name === n)),
+    '已移除的 3 道菜不再出现在任何门店的顾客菜单',
+    '移除 ' + REMOVED_DISHES.join(' / ') + '，其余 ' + menuCounts[MENU_SHOP_IDS[0]] + ' 道');
+  const flashData = ((await mock.call('cloudFlash', 'items', {})).data) || [];
+  log(REMOVED_DISHES.every(n => !flashData.some(f => f.name === n)),
+    '已移除的 3 道菜不再作为抢购商品出现', '在售抢购商品 ' + flashData.length + ' 个');
 
   // 异国风味：分类存在 + 21 道菜描述都冠「国家 · 」小字 + 图片指向 d35~d55
   const mWorld = await mock.call('cloudMenu', 'getShopMenu', { shopId: 'demo-shop', role: 'customer' });
@@ -900,7 +916,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   // 配送费铁律：金额只由服务端算（前端不传配送费字段），满 39 免、否则 5 元；
   // 配送费不参与任何优惠，直接加在优惠后应付之上。外卖必须留全收货信息。
   head('13. 外卖配送（配送费服务端算 / 满免 / 地址校验 / B 取餐号）');
-  const db13 = store['mock_db_v14'];
+  const db13 = store['mock_db_v15'];
 
   // ① 试算：不满 39 的外卖单要收 5 元配送费，且实付 = 商品优惠后应付 + 配送费
   const q13a = (await mock.call('cloudOrder', 'quote', {
@@ -1181,7 +1197,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   // 板块1（2026-11-11）：当前 active 场必须能列出「全部在售商品」。
   // 旧种子 fi4/fi5/fi6 只挂未来场 s3/s4，永远轮不到 active → 用户永远抢不到。
   // 修后所有在售商品 sessionIds 都含 s2（当前场恒 active 槽位）。
-  const b1db = store['mock_db_v14'];
+  const b1db = store['mock_db_v15'];
   const onSaleIds = (b1db.flashItems || []).filter(x => x.status === 'on').map(x => x._id).sort();
   const inActiveIds = farr.map(x => x._id).sort();
   log(JSON.stringify(inActiveIds) === JSON.stringify(onSaleIds),
@@ -1307,7 +1323,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
 
   const fBefore = await mock.call('cloudFlash', 'item', { id: f0._id, memberId: PHONE });
   const fStockBefore = fBefore.data.remain;
-  const dbFlash = store['mock_db_v14'];
+  const dbFlash = store['mock_db_v15'];
   const fTemplates = await mock.call('cloudCoupon', 'templates', {
     shopId: 'demo-shop', userId: PHONE
   });
@@ -1339,7 +1355,7 @@ const COMBO_PRICE = 12, ZONE_RED = '红区', ZONE_WHITE = '白区', COMBO_NAME =
   // 此刻库里已有 paid 抢购单（fPaid）与 canceled 单（fExtra），是验证口径的最佳时点。
   // 独立重算：只算 paid、只算今日、净额 = payAmount；订单数/状态分布不受抢购影响。
   head('抢购营业额并入统计与导出（板块2）');
-  const dbB2 = store['mock_db_v14'];
+  const dbB2 = store['mock_db_v15'];
   // 注意：必须用「此刻」的主订单重算，不能复用第 8 段的 shopOrders 快照 ——
   // 第 10/11/13 段又下过主订单，快照已过时（固化绝对值正是本项目反复强调要避开的坑）。
   const shopOrdersB2 = (dbB2.orders || []).filter(o => o.shopId === 'demo-shop');

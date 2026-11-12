@@ -257,13 +257,20 @@ async function req(path, method, body, withToken) {
   const rechargeOther = await req('/member/recharge?userId=13900009999&amount=50', 'POST');
   log(rechargeOther.success === false, '给他人账号充值被拒', rechargeOther.msg || '');
 
-  // 有余额后验证抵扣规则
+  // 有余额后验证抵扣规则。
+  // 订单金额必须按当前菜单实时算：只有「80% 上限 ≥ 余额 50」时才验得到「余额全额抵扣」。
+  // 这里曾经写死原价 136（麻辣小龙虾 68×2），2026-11-12 那道菜下架后 dishes[0] 换成别的菜，
+  // 原价一变断言就假失败 —— 典型的把数据写死进测试。
+  const q5bQty = Math.ceil(50 / 0.8 / Number(d1.price)) || 1;
   const q5b = await req('/order/quote', 'POST', {
-    shopId: SHOP, memberId: PHONE, useBalance: true, items: cheapItems
+    shopId: SHOP, memberId: PHONE, useBalance: true,
+    items: [{ dishId: d1._id, qty: q5bQty }]
   });
-  // 原价 136 → 余额上限 80% = 108.8，但余额只有 50，故抵扣 50
-  log(q5b.data.balancePay === 50, '余额 50 时全额抵扣 50', '抵扣=' + q5b.data.balancePay);
-  log(q5b.data.payAmount === 136 - 50, '实付 = 原价 - 余额抵扣', '实付=' + q5b.data.payAmount);
+  const q5bTotal = Number(q5b.data.totalPrice);
+  log(q5b.data.balancePay === 50, '余额 50 时全额抵扣 50（80% 上限未触发）',
+    '原价 ' + q5bTotal + ' / 上限 ' + (q5bTotal * 0.8).toFixed(2) + ' → 抵扣=' + q5b.data.balancePay);
+  log(Math.abs(q5b.data.payAmount - (q5bTotal - 50)) < 0.01,
+    '实付 = 原价 - 余额抵扣', '实付=' + q5b.data.payAmount);
 
   // 余额上限 80%：造一笔余额远大于金额的场景不合理（需多次充值），
   // 这里用小额余额 + 大额订单验证比例：余额 50 / 订单 30 → 上限 24

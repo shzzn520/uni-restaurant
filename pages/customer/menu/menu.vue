@@ -337,6 +337,13 @@ export default {
         }));
         this.categories = categories;
         this.menuList = menuList;
+        // 当前分类可能是空的（菜品被整体移除后分类还在，例如「热销」），这时默认落位到
+        // 第一个有菜的分类；否则一进菜单页就是「该分类暂无可售商品」，看着像加载失败。
+        const firstNonEmpty = menuList.findIndex(m => m.dishes.length > 0);
+        const current = menuList[this.activeCat];
+        if (firstNonEmpty >= 0 && (!current || current.dishes.length === 0)) {
+          this.activeCat = firstNonEmpty;
+        }
       } catch (e) {
         // 真实原因不能吞：只弹「菜单加载失败」会让人无从下手（连不上后端 / 后端报错 /
         // 域名未放行，三种情况界面一模一样）。完整错误进控制台，toast 只补一个方向性提示。
